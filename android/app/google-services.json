@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "904142057018",
+    "project_id": "tenis-shark-app",
+    "storage_bucket": "tenis-shark-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:904142057018:android:274d2fc622e490b3ac4f03",
+        "android_client_info": {
+          "package_name": "com.example.tenis_shark_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAIZbE6mXDAmBbCx91KMm_0DaoWJegz944"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
+
