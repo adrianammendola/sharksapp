@@ -1,5 +1,5 @@
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:painter/painter.dart';
 
 class PizarraScreen extends StatefulWidget {
@@ -15,56 +15,120 @@ class _PizarraScreenState extends State<PizarraScreen> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeRight,
+      DeviceOrientation.landscapeLeft,
+    ]);
+  }
+
+  @override
+  void dispose() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeRight,
+      DeviceOrientation.landscapeLeft,
+    ]);
+    super.dispose();
   }
 
   static PainterController _newController() {
     PainterController controller = PainterController();
     controller.thickness = 5.0;
     controller.backgroundColor = Colors.transparent;
+    controller.drawColor = Colors.red; // Color por defecto
     return controller;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pizarra de Tenis'),
-        actions: <Widget>[
-          IconButton(
-            icon: const Icon(Icons.undo),
-            onPressed: () => _controller.undo(),
-          ),
-          IconButton(
-            icon: const Icon(Icons.clear),
-            onPressed: () => _controller.clear(),
-          ),
-          const SizedBox(width: 16),
-          _buildColorButton(Colors.black),
-          _buildColorButton(Colors.red),
-          _buildColorButton(Colors.blue),
-          _buildColorButton(Colors.green),
-          const SizedBox(width: 16),
-        ],
-      ),
-      body: Stack(
-        children: [
-          Image.asset(
-            'assets/images/pizarra/tennis_court.png',
-            fit: BoxFit.contain,
-            width: double.infinity,
-            height: double.infinity,
-          ),
-          Painter(_controller),
-        ],
+    return MediaQuery.removePadding(
+      context: context,
+      removeTop: true,
+      removeBottom: true,
+      removeLeft: true,
+      removeRight: true,
+      child: Material(
+        color: Colors.black,
+        child: Stack(
+          fit: StackFit.expand, // Asegura que los hijos no posicionados llenen el Stack
+          children: [
+            // Imagen de fondo
+            Image.asset(
+              'assets/images/pizarra/tennis_court.png',
+              fit: BoxFit.contain, // Usamos contain para asegurar que toda la cancha sea visible
+            ),
+            // Lienzo para dibujar
+            Painter(_controller),
+            // Controles en la parte inferior
+            Positioned(
+              bottom: 16,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      IconButton(
+                        icon: const Icon(Icons.undo, color: Colors.white),
+                        onPressed: () => _controller.undo(),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.white),
+                        onPressed: () => _controller.clear(),
+                      ),
+                      const SizedBox(width: 16),
+                      _buildColorButton(Colors.red),
+                      _buildColorButton(Colors.blue),
+                      _buildColorButton(Colors.green),
+                      _buildColorButton(Colors.yellow),
+                      _buildColorButton(Colors.white),
+                      _buildColorButton(Colors.black),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // Botón para volver atrás
+            Positioned(
+              top: 40,
+              left: 16,
+              child: SafeArea(
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white, size: 30),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.black.withOpacity(0.5),
+                  ),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildColorButton(Color color) {
+    bool isSelected = _controller.drawColor == color;
     return IconButton(
-      icon: Icon(Icons.circle, color: color),
+      icon: Icon(
+        isSelected ? Icons.circle : Icons.circle_outlined,
+        color: color,
+      ),
+      iconSize: 32,
       onPressed: () {
-        _controller.drawColor = color;
+        setState(() {
+          _controller.drawColor = color;
+        });
       },
     );
   }
