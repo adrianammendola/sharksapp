@@ -81,6 +81,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: lightColorScheme,
+        scaffoldBackgroundColor: lightColorScheme.surface,
         textTheme: GoogleFonts.poppinsTextTheme(
           Theme.of(context).textTheme.apply(bodyColor: lightColorScheme.onSurface)
         ).copyWith(
@@ -96,6 +97,7 @@ class MyApp extends StatelessWidget {
       darkTheme: ThemeData(
         useMaterial3: true,
         colorScheme: darkColorScheme,
+        scaffoldBackgroundColor: darkColorScheme.surface,
         textTheme: GoogleFonts.poppinsTextTheme(
           Theme.of(context).textTheme.apply(bodyColor: darkColorScheme.onSurface)
         ).copyWith(

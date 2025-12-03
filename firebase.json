@@ -14,11 +14,20 @@
     ],
     "headers": [
       {
-        "source": "/(index.html|flutter_service_worker.js)",
+        "source": "/(index.html|flutter_service_worker.js|flutter_bootstrap.js|main.dart.js)",
         "headers": [
           {
             "key": "Cache-Control",
             "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/**/*.@(js|dart.js)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=0, must-revalidate"
           }
         ]
       }

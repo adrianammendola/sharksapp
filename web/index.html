@@ -19,6 +19,8 @@
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="A new Flutter project.">
+  <!-- Hacer que la app web ocupe toda la pantalla en móviles (incluido notch) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -31,8 +33,77 @@
 
   <title>tenis_shark_app</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* Que toda la página tenga el mismo fondo que la app y sin bordes grises */
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background-color: #1A1A2E; /* mismo tono oscuro que el tema dark de la app */
+    }
+
+    body {
+      overscroll-behavior-y: contain;
+    }
+
+    /* Asegurar que el contenedor de Flutter no agregue otro fondo raro */
+    #flutter_host, #flutter-app, .flutter-view, canvas {
+      background-color: transparent !important;
+    }
+  </style>
 </head>
 <body>
+  <script>
+    // Sistema de actualización automática del Service Worker
+    // Esto detecta cuando hay una nueva versión y actualiza automáticamente
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        // Esperar a que Flutter cargue el service worker
+        setTimeout(function() {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            registrations.forEach(function(registration) {
+              // Verificar actualizaciones cada vez que se carga la app
+              registration.update();
+              
+              // Escuchar cuando hay una nueva versión disponible
+              registration.addEventListener('updatefound', function() {
+                var newWorker = registration.installing;
+                
+                newWorker.addEventListener('statechange', function() {
+                  // Cuando el nuevo service worker está listo
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // Hay una nueva versión disponible, activarla automáticamente
+                    newWorker.addEventListener('statechange', function() {
+                      if (newWorker.state === 'activated') {
+                        // Recargar la página para usar la nueva versión
+                        window.location.reload();
+                      }
+                    });
+                    // Activar el nuevo service worker inmediatamente
+                    if (registration.waiting) {
+                      registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                    }
+                  }
+                });
+              });
+              
+              // Escuchar mensajes del service worker
+              navigator.serviceWorker.addEventListener('controllerchange', function() {
+                // Cuando cambia el controlador, recargar para usar la nueva versión
+                window.location.reload();
+              });
+            });
+          });
+          
+          // También escuchar cuando se detecta un nuevo service worker
+          navigator.serviceWorker.addEventListener('controllerchange', function() {
+            window.location.reload();
+          });
+        }, 1000);
+      });
+    }
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

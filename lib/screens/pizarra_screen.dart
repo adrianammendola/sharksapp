@@ -16,21 +16,25 @@ class _PizarraScreenState extends State<PizarraScreen> {
   void initState() {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeRight,
-      DeviceOrientation.landscapeLeft,
-    ]);
+    // Para la pizarra queremos un fondo totalmente negro, también en las barras del sistema.
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.black,
+      systemNavigationBarColor: Colors.black,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ));
   }
 
   @override
   void dispose() {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-      DeviceOrientation.landscapeRight,
-      DeviceOrientation.landscapeLeft,
-    ]);
+    // Restaurar un estilo más neutro para el resto de la app
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.black,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ));
     super.dispose();
   }
 
@@ -44,6 +48,9 @@ class _PizarraScreenState extends State<PizarraScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+
     return MediaQuery.removePadding(
       context: context,
       removeTop: true,
@@ -58,7 +65,8 @@ class _PizarraScreenState extends State<PizarraScreen> {
             // Imagen de fondo
             Image.asset(
               'assets/images/pizarra/tennis_court.png',
-              fit: BoxFit.contain, // Usamos contain para asegurar que toda la cancha sea visible
+              // En horizontal llenamos la pantalla; en vertical mantenemos la vista "normal"
+              fit: isLandscape ? BoxFit.cover : BoxFit.contain,
             ),
             // Lienzo para dibujar
             Painter(_controller),
