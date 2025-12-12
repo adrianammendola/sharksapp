@@ -19,3 +19,10 @@ samples, guidance on mobile development, and a full API reference.
 
 flutter build web --release (para construir la nueva versión).
 firebase deploy --only hosting (para subir la nueva versión).
+
+Para levantar el proyecto en local
+instalar dependencias 
+flutter pub get
+
+levantar el proyecto local
+flutter run -d chrome

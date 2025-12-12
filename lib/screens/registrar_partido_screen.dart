@@ -479,12 +479,25 @@ class _RegistrarPartidoScreenState extends State<RegistrarPartidoScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: _textFieldCounter(
+                          child: _pointCounter(
                             label: jugador1Nombre,
                             value: set['puntosTieBreak1'] as int,
-                            onChanged: (value) =>
-                                setState(() => set['puntosTieBreak1'] = value),
-                            maxValue: 20,
+                            onIncrement: () {
+                              setState(() {
+                                if ((set['puntosTieBreak1'] as int) < 20) {
+                                  set['puntosTieBreak1'] =
+                                      (set['puntosTieBreak1'] as int) + 1;
+                                }
+                              });
+                            },
+                            onDecrement: () {
+                              setState(() {
+                                if ((set['puntosTieBreak1'] as int) > 0) {
+                                  set['puntosTieBreak1'] =
+                                      (set['puntosTieBreak1'] as int) - 1;
+                                }
+                              });
+                            },
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -497,12 +510,25 @@ class _RegistrarPartidoScreenState extends State<RegistrarPartidoScreen> {
                         ),
                         const SizedBox(width: 16),
                         Expanded(
-                          child: _textFieldCounter(
+                          child: _pointCounter(
                             label: jugador2Nombre,
                             value: set['puntosTieBreak2'] as int,
-                            onChanged: (value) =>
-                                setState(() => set['puntosTieBreak2'] = value),
-                            maxValue: 20,
+                            onIncrement: () {
+                              setState(() {
+                                if ((set['puntosTieBreak2'] as int) < 20) {
+                                  set['puntosTieBreak2'] =
+                                      (set['puntosTieBreak2'] as int) + 1;
+                                }
+                              });
+                            },
+                            onDecrement: () {
+                              setState(() {
+                                if ((set['puntosTieBreak2'] as int) > 0) {
+                                  set['puntosTieBreak2'] =
+                                      (set['puntosTieBreak2'] as int) - 1;
+                                }
+                              });
+                            },
                           ),
                         ),
                       ],
@@ -515,19 +541,27 @@ class _RegistrarPartidoScreenState extends State<RegistrarPartidoScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: _textFieldCounter(
+                    child: _pointCounter(
                       label: jugador1Nombre,
                       value: set['jugador1'] as int,
-                      onChanged: (value) {
+                      onIncrement: () {
                         setState(() {
-                          set['jugador1'] = value;
-                          // Verificar si necesita tie-break automático
-                          if (value == 6 && (set['jugador2'] as int) == 6) {
-                            set['esTieBreak'] = true;
+                          if ((set['jugador1'] as int) < 7) {
+                            set['jugador1'] = (set['jugador1'] as int) + 1;
+                            if ((set['jugador1'] as int) == 6 &&
+                                (set['jugador2'] as int) == 6) {
+                              set['esTieBreak'] = true;
+                            }
                           }
                         });
                       },
-                      maxValue: 7,
+                      onDecrement: () {
+                        setState(() {
+                          if ((set['jugador1'] as int) > 0) {
+                            set['jugador1'] = (set['jugador1'] as int) - 1;
+                          }
+                        });
+                      },
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -537,19 +571,27 @@ class _RegistrarPartidoScreenState extends State<RegistrarPartidoScreen> {
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: _textFieldCounter(
+                    child: _pointCounter(
                       label: jugador2Nombre,
                       value: set['jugador2'] as int,
-                      onChanged: (value) {
+                      onIncrement: () {
                         setState(() {
-                          set['jugador2'] = value;
-                          // Verificar si necesita tie-break automático
-                          if (value == 6 && (set['jugador1'] as int) == 6) {
-                            set['esTieBreak'] = true;
+                          if ((set['jugador2'] as int) < 7) {
+                            set['jugador2'] = (set['jugador2'] as int) + 1;
+                            if ((set['jugador1'] as int) == 6 &&
+                                (set['jugador2'] as int) == 6) {
+                              set['esTieBreak'] = true;
+                            }
                           }
                         });
                       },
-                      maxValue: 7,
+                      onDecrement: () {
+                        setState(() {
+                          if ((set['jugador2'] as int) > 0) {
+                            set['jugador2'] = (set['jugador2'] as int) - 1;
+                          }
+                        });
+                      },
                     ),
                   ),
                 ],
@@ -584,7 +626,6 @@ class _RegistrarPartidoScreenState extends State<RegistrarPartidoScreen> {
                           ),
                         ],
                       ),
-
                       if (esTieBreak) ...[
                         const SizedBox(height: 8),
                         const Text(
@@ -599,13 +640,25 @@ class _RegistrarPartidoScreenState extends State<RegistrarPartidoScreen> {
                         Row(
                           children: [
                             Expanded(
-                              child: _textFieldCounter(
+                              child: _pointCounter(
                                 label: 'Tie-Break ${jugador1Nombre}',
                                 value: set['puntosTieBreak1'] as int,
-                                onChanged: (value) => setState(
-                                  () => set['puntosTieBreak1'] = value,
-                                ),
-                                maxValue: 15,
+                                onIncrement: () {
+                                  setState(() {
+                                    if ((set['puntosTieBreak1'] as int) < 15) {
+                                      set['puntosTieBreak1'] =
+                                          (set['puntosTieBreak1'] as int) + 1;
+                                    }
+                                  });
+                                },
+                                onDecrement: () {
+                                  setState(() {
+                                    if ((set['puntosTieBreak1'] as int) > 0) {
+                                      set['puntosTieBreak1'] =
+                                          (set['puntosTieBreak1'] as int) - 1;
+                                    }
+                                  });
+                                },
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -618,13 +671,25 @@ class _RegistrarPartidoScreenState extends State<RegistrarPartidoScreen> {
                             ),
                             const SizedBox(width: 16),
                             Expanded(
-                              child: _textFieldCounter(
+                              child: _pointCounter(
                                 label: 'Tie-Break ${jugador2Nombre}',
                                 value: set['puntosTieBreak2'] as int,
-                                onChanged: (value) => setState(
-                                  () => set['puntosTieBreak2'] = value,
-                                ),
-                                maxValue: 15,
+                                onIncrement: () {
+                                  setState(() {
+                                    if ((set['puntosTieBreak2'] as int) < 15) {
+                                      set['puntosTieBreak2'] =
+                                          (set['puntosTieBreak2'] as int) + 1;
+                                    }
+                                  });
+                                },
+                                onDecrement: () {
+                                  setState(() {
+                                    if ((set['puntosTieBreak2'] as int) > 0) {
+                                      set['puntosTieBreak2'] =
+                                          (set['puntosTieBreak2'] as int) - 1;
+                                    }
+                                  });
+                                },
                               ),
                             ),
                           ],
@@ -641,14 +706,11 @@ class _RegistrarPartidoScreenState extends State<RegistrarPartidoScreen> {
     );
   }
 
-  Widget _textFieldCounter({
-    required String label,
-    required int value,
-    required ValueChanged<int> onChanged,
-    int maxValue = 7,
-  }) {
-    final controller = TextEditingController(text: value.toString());
-
+  Widget _pointCounter(
+      {required String label,
+      required int value,
+      required VoidCallback onIncrement,
+      required VoidCallback onDecrement}) {
     return Column(
       children: [
         Text(
@@ -657,30 +719,24 @@ class _RegistrarPartidoScreenState extends State<RegistrarPartidoScreen> {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
-        Container(
-          width: 80,
-          height: 50,
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade300),
-            borderRadius: BorderRadius.circular(8),
-            color: Colors.grey.shade50,
-          ),
-          child: TextField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            decoration: const InputDecoration(
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.remove_circle_outline),
+              onPressed: onDecrement,
+              color: Colors.red,
             ),
-            onChanged: (text) {
-              final newValue = int.tryParse(text) ?? 0;
-              if (newValue >= 0 && newValue <= maxValue) {
-                onChanged(newValue);
-              }
-            },
-          ),
+            Text(
+              value.toString(),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline),
+              onPressed: onIncrement,
+              color: Colors.green,
+            ),
+          ],
         ),
       ],
     );
