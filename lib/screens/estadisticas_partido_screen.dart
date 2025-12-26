@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/jugador.dart';
+import '../models/custom_stat_config.dart';
+import '../services/data_service.dart';
 
 class EstadisticasPartidoScreen extends StatefulWidget {
   final Jugador jugador;
@@ -21,6 +23,21 @@ class _EstadisticasPartidoScreenState extends State<EstadisticasPartidoScreen> {
   int erroresNoForzados = 0;
   int erroresForzados = 0;
 
+  List<CustomStatConfig> _customStatsConfig = [];
+  final Map<String, int> _customStatsValues = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCustomStats();
+  }
+
+  void _loadCustomStats() {
+    setState(() {
+      _customStatsConfig = DataService.getCustomStats();
+    });
+  }
+
   void guardarEstadisticas() {
     widget.jugador.estadisticas.add({
       'fecha': DateTime.now().toString(),
@@ -33,6 +50,7 @@ class _EstadisticasPartidoScreenState extends State<EstadisticasPartidoScreen> {
       'golpesReves': golpesReves,
       'erroresNoForzados': erroresNoForzados,
       'erroresForzados': erroresForzados,
+      ..._customStatsValues,
     });
 
     widget.jugador.save();
@@ -77,6 +95,18 @@ class _EstadisticasPartidoScreenState extends State<EstadisticasPartidoScreen> {
                 (v) => erroresNoForzados = v,
               ),
               campoNumerico('Errores forzados', (v) => erroresForzados = v),
+              if (_customStatsConfig.isNotEmpty) ...[
+                const SizedBox(height: 15),
+                const Text('Estadísticas Personalizadas', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                ..._customStatsConfig.expand((config) {
+                  final wonKey = '${config.id}_won';
+                  final lostKey = '${config.id}_lost';
+                  return [
+                    campoNumerico('${config.name} (Aciertos)', (v) => _customStatsValues[wonKey] = v),
+                    campoNumerico('${config.name} (Errores)', (v) => _customStatsValues[lostKey] = v),
+                  ];
+                }),
+              ],
               const SizedBox(height: 15),
               ElevatedButton(
                 onPressed: guardarEstadisticas,

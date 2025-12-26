@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/jugador.dart';
 import '../models/partido.dart';
+import '../models/custom_stat_config.dart';
+import '../services/data_service.dart';
 
 class EditarEstadisticasScreen extends StatefulWidget {
   final Jugador jugador;
@@ -25,6 +27,21 @@ class _EditarEstadisticasScreenState extends State<EditarEstadisticasScreen> {
   int erroresNoForzados = 0;
   int erroresForzados = 0;
 
+  List<CustomStatConfig> _customStatsConfig = [];
+  final Map<String, int> _customStatsValues = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCustomStats();
+  }
+
+  void _loadCustomStats() {
+    setState(() {
+      _customStatsConfig = DataService.getCustomStats();
+    });
+  }
+
   Widget _contador(String label, int valor, VoidCallback sumar, VoidCallback restar) {
     return Row(
       children: [
@@ -47,6 +64,7 @@ class _EditarEstadisticasScreenState extends State<EditarEstadisticasScreen> {
       'golpesReves': golpesReves,
       'erroresNoForzados': erroresNoForzados,
       'erroresForzados': erroresForzados,
+      ..._customStatsValues,
     });
     widget.jugador.save();
     Navigator.pop(context);
@@ -82,6 +100,22 @@ class _EditarEstadisticasScreenState extends State<EditarEstadisticasScreen> {
             _contador('Errores Forzados', erroresForzados, () => setState(() => erroresForzados++),
                 () => setState(() => erroresForzados--)),
             SizedBox(height: 24),
+            if (_customStatsConfig.isNotEmpty) ...[
+              Text('Estadísticas Personalizadas', style: TextStyle(fontWeight: FontWeight.bold)),
+              ..._customStatsConfig.expand((config) {
+                final wonKey = '${config.id}_won';
+                final lostKey = '${config.id}_lost';
+                return [
+                  _contador('${config.name} (Aciertos)', _customStatsValues[wonKey] ?? 0,
+                      () => setState(() => _customStatsValues[wonKey] = (_customStatsValues[wonKey] ?? 0) + 1),
+                      () => setState(() => _customStatsValues[wonKey] = ((_customStatsValues[wonKey] ?? 0) - 1).clamp(0, 999))),
+                  _contador('${config.name} (Errores)', _customStatsValues[lostKey] ?? 0,
+                      () => setState(() => _customStatsValues[lostKey] = (_customStatsValues[lostKey] ?? 0) + 1),
+                      () => setState(() => _customStatsValues[lostKey] = ((_customStatsValues[lostKey] ?? 0) - 1).clamp(0, 999))),
+                ];
+              }),
+              SizedBox(height: 24),
+            ],
             ElevatedButton(onPressed: guardarEstadisticas, child: Text('Guardar Estadísticas')),
           ],
         ),

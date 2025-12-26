@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:tenis_shark_app/models/estadistica_partido.dart';
-import 'package:tenis_shark_app/models/partido.dart';
-import 'package:tenis_shark_app/services/firebase_service.dart';
-import 'package:tenis_shark_app/screens/share_match_screen.dart'; // Import the new screen
+import '../models/estadistica_partido.dart';
+import '../models/partido.dart';
+import '../models/custom_stat_config.dart';
+import '../services/data_service.dart';
+import '../services/firebase_service.dart';
+import 'share_match_screen.dart'; // Import the new screen
 import 'package:intl/intl.dart';
 
 class PartidoDetalleScreen extends StatefulWidget {
@@ -19,7 +21,19 @@ class _PartidoDetalleScreenState extends State<PartidoDetalleScreen> {
   final _commentController = TextEditingController();
   final _scrollController = ScrollController();
   int _selectedSet = 0; // 0 for total, 1 for set 1, etc.
+  List<CustomStatConfig> _customStatsConfig = [];
 
+  @override
+  void initState() {
+    super.initState();
+    _loadCustomStatsConfig();
+  }
+
+  void _loadCustomStatsConfig() {
+    setState(() {
+      _customStatsConfig = DataService.getCustomStats();
+    });
+  }
 
   // Usar el ownerId del partido, o el usuario actual como fallback
   String get _partidoOwnerId {
@@ -69,6 +83,44 @@ class _PartidoDetalleScreenState extends State<PartidoDetalleScreen> {
         ),
       );
     }
+  }
+
+  void _updateStat(String jugador, String statKey, int delta, {bool isCustom = false}) {
+    setState(() {
+      final stats = widget.partido.estadisticas[jugador]!;
+      // Por simplicidad, actualizamos las estadísticas TOTALES en esta vista
+      final totalStats = stats.estadisticasTotales;
+
+      if (isCustom) {
+        final currentVal = totalStats.customStats[statKey] ?? 0;
+        totalStats.customStats[statKey] = (currentVal + delta).clamp(0, 999);
+      } else {
+        switch (statKey) {
+          case 'aces':
+            totalStats.aces = (totalStats.aces + delta).clamp(0, 999);
+            break;
+          case 'doblesFaltas':
+            totalStats.doblesFaltas = (totalStats.doblesFaltas + delta).clamp(0, 999);
+            break;
+          case 'winnersDrive':
+            totalStats.winnersDrive = (totalStats.winnersDrive + delta).clamp(0, 999);
+            break;
+          case 'winnersReves':
+            totalStats.winnersReves = (totalStats.winnersReves + delta).clamp(0, 999);
+            break;
+          case 'erroresNoForzados':
+            totalStats.erroresNoForzados = (totalStats.erroresNoForzados + delta).clamp(0, 999);
+            break;
+          case 'erroresForzados':
+            totalStats.erroresForzados = (totalStats.erroresForzados + delta).clamp(0, 999);
+            break;
+        }
+      }
+      
+      // Guardar cambios automáticamente
+      widget.partido.save(); 
+      DataService.savePartido(widget.partido);
+    });
   }
 
   @override
@@ -179,17 +231,22 @@ class _PartidoDetalleScreenState extends State<PartidoDetalleScreen> {
   }
 
   Widget _buildStatsContent(BuildContext context) {
+    // Verificar si el usuario puede editar (es el dueño)
+    final isOwner = FirebaseService.currentUserId == (widget.partido.ownerId ?? FirebaseService.currentUserId);
+
     if (_selectedSet == 0) {
-      // Display total stats
+      // Estadísticas Totales (Editables si es el dueño)
       return Column(
         children: widget.partido.estadisticas.entries.map((entry) {
           final playerName = entry.key;
           final stats = entry.value.estadisticasTotales;
-          return _buildStatsCard(context, playerName, stats);
+          return isOwner 
+              ? _buildEditableStatsCard(context, playerName, stats)
+              : _buildStatsCard(context, playerName, stats);
         }).toList(),
       );
     } else {
-      // Display stats for the selected set
+      // Estadísticas por Set (Solo lectura por ahora para simplificar)
       final setIndex = _selectedSet - 1;
       return Column(
         children: widget.partido.estadisticas.entries.map((entry) {
@@ -201,6 +258,40 @@ class _PartidoDetalleScreenState extends State<PartidoDetalleScreen> {
     }
   }
 
+  // Tarjeta editable para el dueño del partido
+  Widget _buildEditableStatsCard(BuildContext context, String playerName, EstadisticaSet stats) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              playerName,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const Divider(),
+            _buildStatRowEditable('Aces', stats.aces, (d) => _updateStat(playerName, 'aces', d)),
+            _buildStatRowEditable('Dobles Faltas', stats.doblesFaltas, (d) => _updateStat(playerName, 'doblesFaltas', d)),
+            _buildStatRowEditable('Winners Drive', stats.winnersDrive, (d) => _updateStat(playerName, 'winnersDrive', d)),
+            _buildStatRowEditable('Winners Revés', stats.winnersReves, (d) => _updateStat(playerName, 'winnersReves', d)),
+            _buildStatRowEditable('Err. No Forzados', stats.erroresNoForzados, (d) => _updateStat(playerName, 'erroresNoForzados', d)),
+            _buildStatRowEditable('Err. Forzados', stats.erroresForzados, (d) => _updateStat(playerName, 'erroresForzados', d)),
+            
+            if (_customStatsConfig.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Text('Personalizadas', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Divider(),
+              ..._customStatsConfig.map((config) => _buildCustomStatRow(playerName, config, stats)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Tarjeta de solo lectura
   Widget _buildStatsCard(BuildContext context, String playerName, EstadisticaSet stats) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
@@ -222,9 +313,79 @@ class _PartidoDetalleScreenState extends State<PartidoDetalleScreen> {
             _buildStatRow('Winners de Revés', stats.winnersReves.toString()),
             _buildStatRow('Errores No Forzados', stats.erroresNoForzados.toString()),
             _buildStatRow('Errores Forzados', stats.erroresForzados.toString()),
+            
+            if (_customStatsConfig.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              const Divider(),
+              const Text('Personalizadas', style: TextStyle(fontWeight: FontWeight.bold)),
+              ..._customStatsConfig.expand((config) {
+                final wonKey = '${config.id}_won';
+                final lostKey = '${config.id}_lost';
+                final wonVal = stats.customStats[wonKey] ?? 0;
+                final lostVal = stats.customStats[lostKey] ?? 0;
+                final total = wonVal + lostVal;
+                final percentage = total > 0 ? (wonVal / total * 100) : 0.0;
+                final errorPercentage = total > 0 ? (lostVal / total * 100) : 0.0;
+
+                return [
+                  _buildStatRow('${config.name} (Aciertos)', '$wonVal (${percentage.toStringAsFixed(1)}%)'),
+                  _buildStatRow('${config.name} (Errores)', '$lostVal (${errorPercentage.toStringAsFixed(1)}%)'),
+                ];
+              }),
+            ],
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildStatRowEditable(String label, int value, Function(int) onChanged) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          Expanded(child: Text(label, style: const TextStyle(fontSize: 14))),
+          IconButton(
+            icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 20),
+            onPressed: () => onChanged(-1),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          SizedBox(
+            width: 30,
+            child: Text(
+              value.toString(),
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline, color: Colors.green, size: 20),
+            onPressed: () => onChanged(1),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomStatRow(String jugador, CustomStatConfig config, EstadisticaSet stats) {
+    final wonKey = '${config.id}_won';
+    final lostKey = '${config.id}_lost';
+    final wonVal = stats.customStats[wonKey] ?? 0;
+    final lostVal = stats.customStats[lostKey] ?? 0;
+    final total = wonVal + lostVal;
+    final percentage = total > 0 ? (wonVal / total * 100) : 0.0;
+    final errorPercentage = total > 0 ? (lostVal / total * 100) : 0.0;
+    final pctString = '(${percentage.toStringAsFixed(1)}%)';
+    final errorPctString = '(${errorPercentage.toStringAsFixed(1)}%)';
+
+    return Column(
+      children: [
+        _buildStatRowEditable('${config.name} (Aciertos) $pctString', wonVal, (d) => _updateStat(jugador, wonKey, d, isCustom: true)),
+        _buildStatRowEditable('${config.name} (Errores) $errorPctString', lostVal, (d) => _updateStat(jugador, lostKey, d, isCustom: true)),
+      ],
     );
   }
 

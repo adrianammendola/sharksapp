@@ -66,7 +66,7 @@ class _PizarraScreenState extends State<PizarraScreen> {
             Image.asset(
               'assets/images/pizarra/tennis_court.png',
               // En horizontal llenamos la pantalla; en vertical mantenemos la vista "normal"
-              fit: isLandscape ? BoxFit.cover : BoxFit.contain,
+              fit: BoxFit.fill,
             ),
             // Lienzo para dibujar
             Painter(_controller),

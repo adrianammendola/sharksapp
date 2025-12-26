@@ -55,6 +55,7 @@ class Partido extends HiveObject {
                   'winnersReves': set.winnersReves,
                   'erroresNoForzados': set.erroresNoForzados,
                   'erroresForzados': set.erroresForzados,
+                  'customStats': set.customStats, // Guardar custom stats
                 },
               )
               .toList(),
@@ -67,6 +68,7 @@ class Partido extends HiveObject {
             'winnersReves': value.estadisticasTotales.winnersReves,
             'erroresNoForzados': value.estadisticasTotales.erroresNoForzados,
             'erroresForzados': value.estadisticasTotales.erroresForzados,
+            'customStats': value.estadisticasTotales.customStats, // Guardar custom stats
           },
         }),
       ),
@@ -98,6 +100,9 @@ class Partido extends HiveObject {
                   winnersReves: setJson['winnersReves'] ?? 0,
                   erroresNoForzados: setJson['erroresNoForzados'] ?? 0,
                   erroresForzados: setJson['erroresForzados'] ?? 0,
+                  customStats: (setJson['customStats'] as Map<String, dynamic>?)?.map(
+                        (k, v) => MapEntry(k, v as int),
+                      ) ?? {},
                 ),
               )
               .toList();
@@ -116,6 +121,9 @@ class Partido extends HiveObject {
               value['estadisticasTotales']?['erroresNoForzados'] ?? 0,
           erroresForzados:
               value['estadisticasTotales']?['erroresForzados'] ?? 0,
+          customStats: (value['estadisticasTotales']?['customStats'] as Map<String, dynamic>?)?.map(
+                (k, v) => MapEntry(k, v as int),
+              ) ?? {},
         );
 
         estadisticasNuevas[key] = EstadisticaPartido(

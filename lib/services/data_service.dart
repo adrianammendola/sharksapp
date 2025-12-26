@@ -1,11 +1,13 @@
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/partido.dart';
 import '../models/jugador.dart';
+import '../models/custom_stat_config.dart';
 import 'firebase_service.dart';
 
 class DataService {
   static final Box<Partido> _partidosBox = Hive.box<Partido>('partidos');
   static final Box<Jugador> _jugadoresBox = Hive.box<Jugador>('jugadores');
+  static final Box<CustomStatConfig> _customStatsBox = Hive.box<CustomStatConfig>('custom_stats');
 
   // ========== JUGADORES ==========
 
@@ -138,6 +140,25 @@ class DataService {
       print('Error descargando datos: $e');
       rethrow;
     }
+  }
+
+  // ========== ESTADÍSTICAS PERSONALIZADAS ==========
+
+  static List<CustomStatConfig> getCustomStats() {
+    return _customStatsBox.values.toList();
+  }
+
+  static Future<void> saveCustomStat(CustomStatConfig stat) async {
+    try {
+      await _customStatsBox.put(stat.id, stat);
+    } catch (e) {
+      print('Error guardando estadística personalizada: $e');
+      rethrow;
+    }
+  }
+
+  static Future<void> deleteCustomStat(String id) async {
+    await _customStatsBox.delete(id);
   }
 
   // ========== ESTADÍSTICAS ==========

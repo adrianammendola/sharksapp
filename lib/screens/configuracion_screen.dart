@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/data_service.dart';
+import 'custom_stats_screen.dart';
 
 class ConfiguracionScreen extends StatefulWidget {
   const ConfiguracionScreen({Key? key}) : super(key: key);
@@ -105,6 +106,8 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                   children: [
                     _buildConnectionStatusCard(context, colorScheme),
                     const SizedBox(height: 16),
+                    _buildCustomStatsCard(context, colorScheme),
+                    const SizedBox(height: 16),
                     _buildSyncStatusCard(context, colorScheme),
                     const SizedBox(height: 16),
                     if (_syncStatus['hasInternet'] == true)
@@ -153,6 +156,26 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
         subtitle: Text(hasInternet
             ? 'La sincronización está activa'
             : 'Los datos se guardan solo en este dispositivo'),
+      ),
+    );
+  }
+
+  Widget _buildCustomStatsCard(BuildContext context, ColorScheme colorScheme) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        leading: Icon(Icons.bar_chart, color: colorScheme.primary),
+        title: const Text('Estadísticas Personalizadas'),
+        subtitle: const Text('Define qué métricas quieres registrar'),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const CustomStatsScreen(),
+            ),
+          );
+        },
       ),
     );
   }

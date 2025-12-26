@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import '../models/jugador.dart';
 import '../models/partido.dart';
+import '../models/custom_stat_config.dart';
 import '../models/estadistica_partido.dart';
 import '../services/data_service.dart';
 import '../services/firebase_service.dart';
@@ -39,6 +40,9 @@ class _RegistrarPartidoScreenState extends State<RegistrarPartidoScreen> {
   List<Map<String, dynamic>> sets =
       []; // Lista de sets con puntuación y configuración
 
+  // Estadísticas personalizadas
+  List<CustomStatConfig> _customStatsConfig = [];
+
   // Estadísticas por jugador y por set
   final Map<String, List<Map<String, int>>> estadisticasTemp = {};
 
@@ -51,7 +55,14 @@ class _RegistrarPartidoScreenState extends State<RegistrarPartidoScreen> {
   @override
   void initState() {
     super.initState();
+    _loadCustomStats();
     _inicializarSets();
+  }
+
+  void _loadCustomStats() {
+    setState(() {
+      _customStatsConfig = DataService.getCustomStats();
+    });
   }
 
   void _inicializarSets() {
@@ -117,6 +128,10 @@ class _RegistrarPartidoScreenState extends State<RegistrarPartidoScreen> {
           'winnersReves': 0,
           'erroresNoForzados': 0,
           'erroresForzados': 0,
+          for (var config in _customStatsConfig) ...{
+            '${config.id}_won': 0,
+            '${config.id}_lost': 0,
+          }
         },
       );
     });
@@ -292,6 +307,12 @@ class _RegistrarPartidoScreenState extends State<RegistrarPartidoScreen> {
               winnersReves: setStats['winnersReves']!,
               erroresNoForzados: setStats['erroresNoForzados']!,
               erroresForzados: setStats['erroresForzados']!,
+              customStats: {
+                for (var config in _customStatsConfig) ...{
+                  '${config.id}_won': setStats['${config.id}_won'] ?? 0,
+                  '${config.id}_lost': setStats['${config.id}_lost'] ?? 0,
+                }
+              },
             ),
           )
           .toList();
@@ -327,6 +348,12 @@ class _RegistrarPartidoScreenState extends State<RegistrarPartidoScreen> {
           0,
           (sum, set) => sum + set['erroresForzados']!,
         ),
+        customStats: {
+          for (var config in _customStatsConfig) ...{
+            '${config.id}_won': statsPorSet.fold(0, (sum, set) => sum + (set['${config.id}_won'] ?? 0)),
+            '${config.id}_lost': statsPorSet.fold(0, (sum, set) => sum + (set['${config.id}_lost'] ?? 0)),
+          }
+        },
       );
 
       estadisticasNuevas[nombre] = EstadisticaPartido(
@@ -824,6 +851,64 @@ class _RegistrarPartidoScreenState extends State<RegistrarPartidoScreen> {
     );
   }
 
+  void _showAddCustomStatDialog() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Nueva Estadística'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Ej: Volea, Smash, Drop Shot'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: 'Nombre',
+                hintText: 'Ingrese nombre',
+                border: OutlineInputBorder(),
+              ),
+              textCapitalization: TextCapitalization.sentences,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final name = controller.text.trim();
+              if (name.isNotEmpty) {
+                final newStat = CustomStatConfig(
+                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                  name: name,
+                );
+                await DataService.saveCustomStat(newStat);
+                
+                // Actualizar las estadísticas temporales existentes para incluir la nueva métrica
+                setState(() {
+                  for (var playerStats in estadisticasTemp.values) {
+                    for (var setStats in playerStats) {
+                      setStats['${newStat.id}_won'] = 0;
+                      setStats['${newStat.id}_lost'] = 0;
+                    }
+                  }
+                });
+
+                _loadCustomStats();
+                if (mounted) Navigator.pop(context);
+              }
+            },
+            child: const Text('Agregar'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _statsJugador(String nombre) {
     _initStatsFor(nombre);
     final m = estadisticasTemp[nombre]![setActualEstadisticas];
@@ -1091,6 +1176,86 @@ class _RegistrarPartidoScreenState extends State<RegistrarPartidoScreen> {
                   porcentaje:
                       '${porcentajeErroresForzados.toStringAsFixed(1)}%',
                 ),
+
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.shade50,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        'PERSONALIZADAS',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.purple,
+                        ),
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: _showAddCustomStatDialog,
+                      icon: const Icon(Icons.add_circle_outline, size: 18),
+                      label: const Text('Agregar'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.purple,
+                        padding: EdgeInsets.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                if (_customStatsConfig.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8.0),
+                    child: Text(
+                      'No hay estadísticas personalizadas. Agrega una nueva.',
+                      style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+                    ),
+                  ),
+
+                ..._customStatsConfig.expand((config) {
+                  final wonKey = '${config.id}_won';
+                  final lostKey = '${config.id}_lost';
+                  final wonVal = m[wonKey] ?? 0;
+                  final lostVal = m[lostKey] ?? 0;
+                  final total = wonVal + lostVal;
+                  final percentage = total > 0 ? (wonVal / total * 100) : 0.0;
+                  final errorPercentage = total > 0 ? (lostVal / total * 100) : 0.0;
+
+                  return [
+                    _statsRow(
+                      label: '${config.name} (Aciertos)',
+                      value: wonVal,
+                      onInc: () => setState(() {
+                        m[wonKey] = (m[wonKey] ?? 0) + 1;
+                      }),
+                      onDec: () => setState(() {
+                        m[wonKey] = ((m[wonKey] ?? 0) - 1).clamp(0, 999);
+                      }),
+                      porcentaje: '${percentage.toStringAsFixed(1)}%',
+                    ),
+                    _statsRow(
+                      label: '${config.name} (Errores)',
+                      value: lostVal,
+                      onInc: () => setState(() {
+                        m[lostKey] = (m[lostKey] ?? 0) + 1;
+                      }),
+                      onDec: () => setState(() {
+                        m[lostKey] = ((m[lostKey] ?? 0) - 1).clamp(0, 999);
+                      }),
+                      porcentaje: '${errorPercentage.toStringAsFixed(1)}%',
+                    ),
+                  ];
+                }),
               ],
             ),
           ),

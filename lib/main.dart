@@ -7,6 +7,7 @@ import 'models/partido.dart';
 import 'package:flutter/gestures.dart';
 import 'models/jugador.dart';
 import 'models/estadistica_partido.dart';
+import 'models/custom_stat_config.dart';
 import 'auth_wrapper.dart'; // Importar el AuthWrapper
 import 'services/firebase_service.dart';
 import 'firebase_options.dart';
@@ -33,10 +34,12 @@ void main() async {
   Hive.registerAdapter(JugadorAdapter());
   Hive.registerAdapter(EstadisticaPartidoAdapter());
   Hive.registerAdapter(EstadisticaSetAdapter());
+  Hive.registerAdapter(CustomStatConfigAdapter());
 
   // Abrir las boxes donde se guardan los datos
   await Hive.openBox<Partido>('partidos');
   await Hive.openBox<Jugador>('jugadores');
+  await Hive.openBox<CustomStatConfig>('custom_stats');
 
   // Inicializar formateo de fechas para español
   try {
