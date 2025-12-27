@@ -126,8 +126,10 @@ class _RegistrarPartidoScreenState extends State<RegistrarPartidoScreen> {
           'doblesFaltas': 0,
           'winnersDrive': 0,
           'winnersReves': 0,
-          'erroresNoForzados': 0,
-          'erroresForzados': 0,
+          'erroresNoForzadosDrive': 0,
+          'erroresNoForzadosReves': 0,
+          'erroresForzadosDrive': 0,
+          'erroresForzadosReves': 0,
           for (var config in _customStatsConfig) ...{
             '${config.id}_won': 0,
             '${config.id}_lost': 0,
@@ -181,26 +183,26 @@ class _RegistrarPartidoScreenState extends State<RegistrarPartidoScreen> {
     return (stats[setActualEstadisticas]['winnersReves']! / total * 100);
   }
 
-  // Calcular porcentaje de errores no forzados
+  // Calcular porcentaje de errores no forzados (Total)
   double _calcularPorcentajeErroresNoForzados(String nombre) {
     final stats = estadisticasTemp[nombre];
     if (stats == null || setActualEstadisticas >= stats.length) return 0.0;
-    final total =
-        stats[setActualEstadisticas]['erroresNoForzados']! +
-        stats[setActualEstadisticas]['erroresForzados']!;
+    final enf = stats[setActualEstadisticas]['erroresNoForzadosDrive']! + stats[setActualEstadisticas]['erroresNoForzadosReves']!;
+    final ef = stats[setActualEstadisticas]['erroresForzadosDrive']! + stats[setActualEstadisticas]['erroresForzadosReves']!;
+    final total = enf + ef;
     if (total == 0) return 0.0;
-    return (stats[setActualEstadisticas]['erroresNoForzados']! / total * 100);
+    return (enf / total * 100);
   }
 
-  // Calcular porcentaje de errores forzados
+  // Calcular porcentaje de errores forzados (Total)
   double _calcularPorcentajeErroresForzados(String nombre) {
     final stats = estadisticasTemp[nombre];
     if (stats == null || setActualEstadisticas >= stats.length) return 0.0;
-    final total =
-        stats[setActualEstadisticas]['erroresNoForzados']! +
-        stats[setActualEstadisticas]['erroresForzados']!;
+    final enf = stats[setActualEstadisticas]['erroresNoForzadosDrive']! + stats[setActualEstadisticas]['erroresNoForzadosReves']!;
+    final ef = stats[setActualEstadisticas]['erroresForzadosDrive']! + stats[setActualEstadisticas]['erroresForzadosReves']!;
+    final total = enf + ef;
     if (total == 0) return 0.0;
-    return (stats[setActualEstadisticas]['erroresForzados']! / total * 100);
+    return (ef / total * 100);
   }
 
   Future<void> _pickDate() async {
@@ -305,8 +307,10 @@ class _RegistrarPartidoScreenState extends State<RegistrarPartidoScreen> {
               doblesFaltas: setStats['doblesFaltas']!,
               winnersDrive: setStats['winnersDrive']!,
               winnersReves: setStats['winnersReves']!,
-              erroresNoForzados: setStats['erroresNoForzados']!,
-              erroresForzados: setStats['erroresForzados']!,
+              erroresNoForzadosDrive: setStats['erroresNoForzadosDrive']!,
+              erroresNoForzadosReves: setStats['erroresNoForzadosReves']!,
+              erroresForzadosDrive: setStats['erroresForzadosDrive']!,
+              erroresForzadosReves: setStats['erroresForzadosReves']!,
               customStats: {
                 for (var config in _customStatsConfig) ...{
                   '${config.id}_won': setStats['${config.id}_won'] ?? 0,
@@ -340,13 +344,21 @@ class _RegistrarPartidoScreenState extends State<RegistrarPartidoScreen> {
           0,
           (sum, set) => sum + set['winnersReves']!,
         ),
-        erroresNoForzados: statsPorSet.fold(
+        erroresNoForzadosDrive: statsPorSet.fold(
           0,
-          (sum, set) => sum + set['erroresNoForzados']!,
+          (sum, set) => sum + set['erroresNoForzadosDrive']!,
         ),
-        erroresForzados: statsPorSet.fold(
+        erroresNoForzadosReves: statsPorSet.fold(
           0,
-          (sum, set) => sum + set['erroresForzados']!,
+          (sum, set) => sum + set['erroresNoForzadosReves']!,
+        ),
+        erroresForzadosDrive: statsPorSet.fold(
+          0,
+          (sum, set) => sum + set['erroresForzadosDrive']!,
+        ),
+        erroresForzadosReves: statsPorSet.fold(
+          0,
+          (sum, set) => sum + set['erroresForzadosReves']!,
         ),
         customStats: {
           for (var config in _customStatsConfig) ...{
@@ -926,6 +938,10 @@ class _RegistrarPartidoScreenState extends State<RegistrarPartidoScreen> {
     final porcentajeErroresForzados = _calcularPorcentajeErroresForzados(
       nombre,
     );
+    
+    // Calcular totales para mostrar en la UI
+    final totalServicios = m['primerServicio']! + m['segundoServicio']!;
+    final totalErrores = m['erroresNoForzadosDrive']! + m['erroresNoForzadosReves']! + m['erroresForzadosDrive']! + m['erroresForzadosReves']!;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -995,7 +1011,7 @@ class _RegistrarPartidoScreenState extends State<RegistrarPartidoScreen> {
                 const SizedBox(height: 12),
 
                 _statsRow(
-                  label: '1er Servicio',
+                  label: '1er Servicio ($totalServicios)',
                   value: m['primerServicio']!,
                   onInc: () => setState(
                     () => estadisticasTemp[nombre]![setActualEstadisticas]['primerServicio'] =
@@ -1141,40 +1157,76 @@ class _RegistrarPartidoScreenState extends State<RegistrarPartidoScreen> {
                 ),
                 const SizedBox(height: 12),
 
+                // Subtítulo Drive
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 8.0),
+                  child: Text('DRIVE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
+                ),
                 _statsRow(
-                  label: 'Errores No Forzados',
-                  value: m['erroresNoForzados']!,
+                  label: 'No Forzados (Drive)',
+                  value: m['erroresNoForzadosDrive']!,
                   onInc: () => setState(
-                    () => estadisticasTemp[nombre]![setActualEstadisticas]['erroresNoForzados'] =
-                        estadisticasTemp[nombre]![setActualEstadisticas]['erroresNoForzados']! +
+                    () => estadisticasTemp[nombre]![setActualEstadisticas]['erroresNoForzadosDrive'] =
+                        estadisticasTemp[nombre]![setActualEstadisticas]['erroresNoForzadosDrive']! +
                         1,
                   ),
                   onDec: () => setState(
-                    () => estadisticasTemp[nombre]![setActualEstadisticas]['erroresNoForzados'] =
-                        (estadisticasTemp[nombre]![setActualEstadisticas]['erroresNoForzados']! -
+                    () => estadisticasTemp[nombre]![setActualEstadisticas]['erroresNoForzadosDrive'] =
+                        (estadisticasTemp[nombre]![setActualEstadisticas]['erroresNoForzadosDrive']! -
                                 1)
                             .clamp(0, 999),
                   ),
-                  porcentaje:
-                      '${porcentajeErroresNoForzados.toStringAsFixed(1)}%',
+                ),
+                _statsRow(
+                  label: 'Forzados (Drive)',
+                  value: m['erroresForzadosDrive']!,
+                  onInc: () => setState(
+                    () => estadisticasTemp[nombre]![setActualEstadisticas]['erroresForzadosDrive'] =
+                        estadisticasTemp[nombre]![setActualEstadisticas]['erroresForzadosDrive']! +
+                        1,
+                  ),
+                  onDec: () => setState(
+                    () => estadisticasTemp[nombre]![setActualEstadisticas]['erroresForzadosDrive'] =
+                        (estadisticasTemp[nombre]![setActualEstadisticas]['erroresForzadosDrive']! -
+                                1)
+                            .clamp(0, 999),
+                  ),
                 ),
 
+                // Subtítulo Revés
+                const Padding(
+                  padding: EdgeInsets.only(top: 8.0, bottom: 8.0),
+                  child: Text('REVÉS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
+                ),
                 _statsRow(
-                  label: 'Errores Forzados',
-                  value: m['erroresForzados']!,
+                  label: 'No Forzados (Revés)',
+                  value: m['erroresNoForzadosReves']!,
                   onInc: () => setState(
-                    () => estadisticasTemp[nombre]![setActualEstadisticas]['erroresForzados'] =
-                        estadisticasTemp[nombre]![setActualEstadisticas]['erroresForzados']! +
+                    () => estadisticasTemp[nombre]![setActualEstadisticas]['erroresNoForzadosReves'] =
+                        estadisticasTemp[nombre]![setActualEstadisticas]['erroresNoForzadosReves']! +
                         1,
                   ),
                   onDec: () => setState(
-                    () => estadisticasTemp[nombre]![setActualEstadisticas]['erroresForzados'] =
-                        (estadisticasTemp[nombre]![setActualEstadisticas]['erroresForzados']! -
+                    () => estadisticasTemp[nombre]![setActualEstadisticas]['erroresNoForzadosReves'] =
+                        (estadisticasTemp[nombre]![setActualEstadisticas]['erroresNoForzadosReves']! -
                                 1)
                             .clamp(0, 999),
                   ),
-                  porcentaje:
-                      '${porcentajeErroresForzados.toStringAsFixed(1)}%',
+                ),
+                _statsRow(
+                  label: 'Forzados (Revés)',
+                  value: m['erroresForzadosReves']!,
+                  onInc: () => setState(
+                    () => estadisticasTemp[nombre]![setActualEstadisticas]['erroresForzadosReves'] =
+                        estadisticasTemp[nombre]![setActualEstadisticas]['erroresForzadosReves']! +
+                        1,
+                  ),
+                  onDec: () => setState(
+                    () => estadisticasTemp[nombre]![setActualEstadisticas]['erroresForzadosReves'] =
+                        (estadisticasTemp[nombre]![setActualEstadisticas]['erroresForzadosReves']! -
+                                1)
+                            .clamp(0, 999),
+                  ),
                 ),
 
                 const SizedBox(height: 16),

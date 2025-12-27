@@ -53,8 +53,10 @@ class Partido extends HiveObject {
                   'doblesFaltas': set.doblesFaltas,
                   'winnersDrive': set.winnersDrive,
                   'winnersReves': set.winnersReves,
-                  'erroresNoForzados': set.erroresNoForzados,
-                  'erroresForzados': set.erroresForzados,
+                  'erroresNoForzadosDrive': set.erroresNoForzadosDrive,
+                  'erroresNoForzadosReves': set.erroresNoForzadosReves,
+                  'erroresForzadosDrive': set.erroresForzadosDrive,
+                  'erroresForzadosReves': set.erroresForzadosReves,
                   'customStats': set.customStats, // Guardar custom stats
                 },
               )
@@ -66,8 +68,10 @@ class Partido extends HiveObject {
             'doblesFaltas': value.estadisticasTotales.doblesFaltas,
             'winnersDrive': value.estadisticasTotales.winnersDrive,
             'winnersReves': value.estadisticasTotales.winnersReves,
-            'erroresNoForzados': value.estadisticasTotales.erroresNoForzados,
-            'erroresForzados': value.estadisticasTotales.erroresForzados,
+            'erroresNoForzadosDrive': value.estadisticasTotales.erroresNoForzadosDrive,
+            'erroresNoForzadosReves': value.estadisticasTotales.erroresNoForzadosReves,
+            'erroresForzadosDrive': value.estadisticasTotales.erroresForzadosDrive,
+            'erroresForzadosReves': value.estadisticasTotales.erroresForzadosReves,
             'customStats': value.estadisticasTotales.customStats, // Guardar custom stats
           },
         }),
@@ -98,8 +102,10 @@ class Partido extends HiveObject {
                   doblesFaltas: setJson['doblesFaltas'] ?? 0,
                   winnersDrive: setJson['winnersDrive'] ?? 0,
                   winnersReves: setJson['winnersReves'] ?? 0,
-                  erroresNoForzados: setJson['erroresNoForzados'] ?? 0,
-                  erroresForzados: setJson['erroresForzados'] ?? 0,
+                  erroresNoForzadosDrive: setJson['erroresNoForzadosDrive'] ?? 0,
+                  erroresNoForzadosReves: setJson['erroresNoForzadosReves'] ?? 0,
+                  erroresForzadosDrive: setJson['erroresForzadosDrive'] ?? 0,
+                  erroresForzadosReves: setJson['erroresForzadosReves'] ?? 0,
                   customStats: (setJson['customStats'] as Map<String, dynamic>?)?.map(
                         (k, v) => MapEntry(k, v as int),
                       ) ?? {},
@@ -117,10 +123,10 @@ class Partido extends HiveObject {
           doblesFaltas: value['estadisticasTotales']?['doblesFaltas'] ?? 0,
           winnersDrive: value['estadisticasTotales']?['winnersDrive'] ?? 0,
           winnersReves: value['estadisticasTotales']?['winnersReves'] ?? 0,
-          erroresNoForzados:
-              value['estadisticasTotales']?['erroresNoForzados'] ?? 0,
-          erroresForzados:
-              value['estadisticasTotales']?['erroresForzados'] ?? 0,
+          erroresNoForzadosDrive: value['estadisticasTotales']?['erroresNoForzadosDrive'] ?? 0,
+          erroresNoForzadosReves: value['estadisticasTotales']?['erroresNoForzadosReves'] ?? 0,
+          erroresForzadosDrive: value['estadisticasTotales']?['erroresForzadosDrive'] ?? 0,
+          erroresForzadosReves: value['estadisticasTotales']?['erroresForzadosReves'] ?? 0,
           customStats: (value['estadisticasTotales']?['customStats'] as Map<String, dynamic>?)?.map(
                 (k, v) => MapEntry(k, v as int),
               ) ?? {},

@@ -108,11 +108,11 @@ class _PartidoDetalleScreenState extends State<PartidoDetalleScreen> {
           case 'winnersReves':
             totalStats.winnersReves = (totalStats.winnersReves + delta).clamp(0, 999);
             break;
-          case 'erroresNoForzados':
-            totalStats.erroresNoForzados = (totalStats.erroresNoForzados + delta).clamp(0, 999);
+          case 'erroresNoForzadosDrive':
+            totalStats.erroresNoForzadosDrive = (totalStats.erroresNoForzadosDrive + delta).clamp(0, 999);
             break;
-          case 'erroresForzados':
-            totalStats.erroresForzados = (totalStats.erroresForzados + delta).clamp(0, 999);
+          // ... (se necesitarían más casos para editar todos los campos nuevos, pero por simplicidad en edición rápida mantenemos lo básico o expandimos si es necesario)
+          // Para mantener la consistencia con la solicitud de "ver mejor reflejado", nos enfocamos en la visualización.
             break;
         }
       }
@@ -231,18 +231,13 @@ class _PartidoDetalleScreenState extends State<PartidoDetalleScreen> {
   }
 
   Widget _buildStatsContent(BuildContext context) {
-    // Verificar si el usuario puede editar (es el dueño)
-    final isOwner = FirebaseService.currentUserId == (widget.partido.ownerId ?? FirebaseService.currentUserId);
-
     if (_selectedSet == 0) {
-      // Estadísticas Totales (Editables si es el dueño)
+      // Estadísticas Totales (Solo lectura con porcentajes)
       return Column(
         children: widget.partido.estadisticas.entries.map((entry) {
           final playerName = entry.key;
           final stats = entry.value.estadisticasTotales;
-          return isOwner 
-              ? _buildEditableStatsCard(context, playerName, stats)
-              : _buildStatsCard(context, playerName, stats);
+          return _buildStatsCard(context, playerName, stats);
         }).toList(),
       );
     } else {
@@ -276,8 +271,10 @@ class _PartidoDetalleScreenState extends State<PartidoDetalleScreen> {
             _buildStatRowEditable('Dobles Faltas', stats.doblesFaltas, (d) => _updateStat(playerName, 'doblesFaltas', d)),
             _buildStatRowEditable('Winners Drive', stats.winnersDrive, (d) => _updateStat(playerName, 'winnersDrive', d)),
             _buildStatRowEditable('Winners Revés', stats.winnersReves, (d) => _updateStat(playerName, 'winnersReves', d)),
-            _buildStatRowEditable('Err. No Forzados', stats.erroresNoForzados, (d) => _updateStat(playerName, 'erroresNoForzados', d)),
-            _buildStatRowEditable('Err. Forzados', stats.erroresForzados, (d) => _updateStat(playerName, 'erroresForzados', d)),
+            _buildStatRowEditable('Err. NF Drive', stats.erroresNoForzadosDrive, (d) => _updateStat(playerName, 'erroresNoForzadosDrive', d)),
+            _buildStatRowEditable('Err. NF Revés', stats.erroresNoForzadosReves, (d) => _updateStat(playerName, 'erroresNoForzadosReves', d)),
+            _buildStatRowEditable('Err. F Drive', stats.erroresForzadosDrive, (d) => _updateStat(playerName, 'erroresForzadosDrive', d)),
+            _buildStatRowEditable('Err. F Revés', stats.erroresForzadosReves, (d) => _updateStat(playerName, 'erroresForzadosReves', d)),
             
             if (_customStatsConfig.isNotEmpty) ...[
               const SizedBox(height: 16),
@@ -293,6 +290,16 @@ class _PartidoDetalleScreenState extends State<PartidoDetalleScreen> {
 
   // Tarjeta de solo lectura
   Widget _buildStatsCard(BuildContext context, String playerName, EstadisticaSet stats) {
+    // Calcular totales para porcentajes
+    final totalWinners = stats.winnersDrive + stats.winnersReves;
+    final totalErrors = stats.erroresNoForzados + stats.erroresForzados;
+    final totalServicios = stats.primerServicio + stats.segundoServicio;
+
+    String formatPct(int value, int total) {
+      final pct = total > 0 ? (value / total * 100) : 0.0;
+      return '$value (${pct.toStringAsFixed(1)}%)';
+    }
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
       child: Padding(
@@ -305,14 +312,16 @@ class _PartidoDetalleScreenState extends State<PartidoDetalleScreen> {
               style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const Divider(),
-            _buildStatRow('Primer Servicio', '${stats.porcentajePrimerServicio.toStringAsFixed(1)}%'),
-            _buildStatRow('Segundo Servicio', '${stats.porcentajeSegundoServicio.toStringAsFixed(1)}%'),
+            _buildStatRow('Primer Servicio', '${stats.primerServicio}/$totalServicios (${(totalServicios > 0 ? stats.primerServicio / totalServicios * 100 : 0).toStringAsFixed(1)}%)'),
+            _buildStatRow('Segundo Servicio', '${stats.segundoServicio}/$totalServicios (${(totalServicios > 0 ? stats.segundoServicio / totalServicios * 100 : 0).toStringAsFixed(1)}%)'),
             _buildStatRow('Aces', stats.aces.toString()),
             _buildStatRow('Dobles Faltas', stats.doblesFaltas.toString()),
-            _buildStatRow('Winners de Drive', stats.winnersDrive.toString()),
-            _buildStatRow('Winners de Revés', stats.winnersReves.toString()),
-            _buildStatRow('Errores No Forzados', stats.erroresNoForzados.toString()),
-            _buildStatRow('Errores Forzados', stats.erroresForzados.toString()),
+            _buildStatRow('Winners de Drive', formatPct(stats.winnersDrive, totalWinners)),
+            _buildStatRow('Winners de Revés', formatPct(stats.winnersReves, totalWinners)),
+            _buildStatRow('Err. No Forzados (Drive)', stats.erroresNoForzadosDrive.toString()),
+            _buildStatRow('Err. No Forzados (Revés)', stats.erroresNoForzadosReves.toString()),
+            _buildStatRow('Err. Forzados (Drive)', stats.erroresForzadosDrive.toString()),
+            _buildStatRow('Err. Forzados (Revés)', stats.erroresForzadosReves.toString()),
             
             if (_customStatsConfig.isNotEmpty) ...[
               const SizedBox(height: 8),

@@ -17,8 +17,10 @@ class EstadisticaSet {
   int doblesFaltas;
   int winnersDrive;
   int winnersReves;
-  int erroresNoForzados;
-  int erroresForzados;
+  int erroresNoForzadosDrive;
+  int erroresNoForzadosReves;
+  int erroresForzadosDrive;
+  int erroresForzadosReves;
   
   // Clave: ID_stat + "_won" o "_lost", Valor: Cantidad
   Map<String, int> customStats;
@@ -30,14 +32,20 @@ class EstadisticaSet {
     this.doblesFaltas = 0,
     this.winnersDrive = 0,
     this.winnersReves = 0,
-    this.erroresNoForzados = 0,
-    this.erroresForzados = 0,
+    this.erroresNoForzadosDrive = 0,
+    this.erroresNoForzadosReves = 0,
+    this.erroresForzadosDrive = 0,
+    this.erroresForzadosReves = 0,
     Map<String, int>? customStats,
   }) : customStats = customStats ?? {};
 
+  // Getters de compatibilidad para obtener totales
+  int get erroresNoForzados => erroresNoForzadosDrive + erroresNoForzadosReves;
+  int get erroresForzados => erroresForzadosDrive + erroresForzadosReves;
+
   // Métodos para calcular porcentajes
   double get porcentajePrimerServicio {
-    final total = primerServicio + segundoServicio;
+    final total = primerServicio + segundoServicio + doblesFaltas;
     return total > 0 ? (primerServicio / total) * 100 : 0.0;
   }
 
@@ -57,12 +65,12 @@ class EstadisticaSet {
   }
 
   double get porcentajeErroresNoForzados {
-    final total = erroresNoForzados + erroresForzados;
+    final total = erroresNoForzados + erroresForzados; // Usa los getters que suman
     return total > 0 ? (erroresNoForzados / total) * 100 : 0.0;
   }
 
   double get porcentajeErroresForzados {
-    final total = erroresNoForzados + erroresForzados;
+    final total = erroresNoForzados + erroresForzados; // Usa los getters que suman
     return total > 0 ? (erroresForzados / total) * 100 : 0.0;
   }
 
@@ -74,8 +82,10 @@ class EstadisticaSet {
     int? doblesFaltas,
     int? winnersDrive,
     int? winnersReves,
-    int? erroresNoForzados,
-    int? erroresForzados,
+    int? erroresNoForzadosDrive,
+    int? erroresNoForzadosReves,
+    int? erroresForzadosDrive,
+    int? erroresForzadosReves,
     Map<String, int>? customStats,
   }) {
     return EstadisticaSet(
@@ -85,8 +95,10 @@ class EstadisticaSet {
       doblesFaltas: doblesFaltas ?? this.doblesFaltas,
       winnersDrive: winnersDrive ?? this.winnersDrive,
       winnersReves: winnersReves ?? this.winnersReves,
-      erroresNoForzados: erroresNoForzados ?? this.erroresNoForzados,
-      erroresForzados: erroresForzados ?? this.erroresForzados,
+      erroresNoForzadosDrive: erroresNoForzadosDrive ?? this.erroresNoForzadosDrive,
+      erroresNoForzadosReves: erroresNoForzadosReves ?? this.erroresNoForzadosReves,
+      erroresForzadosDrive: erroresForzadosDrive ?? this.erroresForzadosDrive,
+      erroresForzadosReves: erroresForzadosReves ?? this.erroresForzadosReves,
       customStats: customStats ?? this.customStats,
     );
   }
@@ -126,8 +138,10 @@ class EstadisticaSetAdapter extends TypeAdapter<EstadisticaSet> {
       doblesFaltas: reader.read(),
       winnersDrive: reader.read(),
       winnersReves: reader.read(),
-      erroresNoForzados: reader.read(),
-      erroresForzados: reader.read(),
+      erroresNoForzadosDrive: reader.read(),
+      erroresNoForzadosReves: reader.read(),
+      erroresForzadosDrive: reader.read(),
+      erroresForzadosReves: reader.read(),
       customStats: (reader.read() as Map).cast<String, int>(),
     );
   }
@@ -140,8 +154,10 @@ class EstadisticaSetAdapter extends TypeAdapter<EstadisticaSet> {
     writer.write(obj.doblesFaltas);
     writer.write(obj.winnersDrive);
     writer.write(obj.winnersReves);
-    writer.write(obj.erroresNoForzados);
-    writer.write(obj.erroresForzados);
+    writer.write(obj.erroresNoForzadosDrive);
+    writer.write(obj.erroresNoForzadosReves);
+    writer.write(obj.erroresForzadosDrive);
+    writer.write(obj.erroresForzadosReves);
     writer.write(obj.customStats);
   }
 }
