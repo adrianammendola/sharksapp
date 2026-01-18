@@ -384,6 +384,10 @@ class _RegistrarPartidoScreenState extends State<RegistrarPartidoScreen> {
       esDobles: esDobles,
       estadisticas: estadisticasNuevas,
       ownerId: currentUserId, // Guardar el owner del partido
+      customStatNames: {
+        for (var config in _customStatsConfig) config.id: config.name,
+      },
+      detallesSets: sets, // Guardar la puntuación detallada
     );
 
     // Guardar localmente y sincronizar con Firebase

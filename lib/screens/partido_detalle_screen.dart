@@ -30,8 +30,25 @@ class _PartidoDetalleScreenState extends State<PartidoDetalleScreen> {
   }
 
   void _loadCustomStatsConfig() {
+    // 1. Obtener configuración local
+    final localConfig = DataService.getCustomStats();
+    
+    // 2. Crear mapa base para combinar (ID -> Config)
+    final Map<String, CustomStatConfig> configMap = {
+      for (var c in localConfig) c.id: c
+    };
+
+    // 3. Incorporar definiciones del partido que falten localmente
+    if (widget.partido.customStatNames.isNotEmpty) {
+      widget.partido.customStatNames.forEach((id, name) {
+        if (!configMap.containsKey(id)) {
+          configMap[id] = CustomStatConfig(id: id, name: name);
+        }
+      });
+    }
+
     setState(() {
-      _customStatsConfig = DataService.getCustomStats();
+      _customStatsConfig = configMap.values.toList();
     });
   }
 
@@ -180,25 +197,95 @@ class _PartidoDetalleScreenState extends State<PartidoDetalleScreen> {
   }
 
   Widget _buildMatchSummary(BuildContext context) {
+    // Determinar nombres de jugadores/equipos
+    String p1Name, p2Name;
+    if (widget.partido.esDobles) {
+      p1Name = 'Equipo 1';
+      p2Name = 'Equipo 2';
+    } else {
+      p1Name = widget.partido.jugadores.isNotEmpty ? widget.partido.jugadores[0] : 'Jugador 1';
+      p2Name = widget.partido.jugadores.length > 1 ? widget.partido.jugadores[1] : 'Jugador 2';
+    }
+
+    // Obtener sets ganados (usando las claves correctas)
+    final setsP1 = widget.partido.sets[p1Name] ?? widget.partido.sets[widget.partido.jugadores.isNotEmpty ? widget.partido.jugadores[0] : ''] ?? 0;
+    final setsP2 = widget.partido.sets[p2Name] ?? widget.partido.sets[widget.partido.jugadores.length > 1 ? widget.partido.jugadores[1] : ''] ?? 0;
+
+    // Calcular games totales si hay detalles
+    int gamesP1 = 0;
+    int gamesP2 = 0;
+    bool hasDetails = widget.partido.detallesSets.isNotEmpty;
+
+    if (hasDetails) {
+      for (var set in widget.partido.detallesSets) {
+        if (set['esSuperTieBreak'] == true) {
+          // En super tie break, sumamos 1 game al ganador para el conteo total
+          int pt1 = set['puntosTieBreak1'] ?? 0;
+          int pt2 = set['puntosTieBreak2'] ?? 0;
+          if (pt1 > pt2) gamesP1++;
+          else if (pt2 > pt1) gamesP2++;
+        } else {
+          gamesP1 += (set['jugador1'] as int? ?? 0);
+          gamesP2 += (set['jugador2'] as int? ?? 0);
+        }
+      }
+    }
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             Text(
-              widget.partido.jugadores.join(' vs '),
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
               _formatDate(widget.partido.fecha),
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
-            Text(
-              widget.partido.sets.entries.map((e) => e.value).join(' - '),
-              style: Theme.of(context).textTheme.headlineMedium,
+            
+            // Tabla de Puntuación (Scoreboard)
+            Table(
+              columnWidths: const {
+                0: FlexColumnWidth(3), // Nombre
+                // Las columnas de sets se ajustan automáticamente
+              },
+              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+              children: [
+                // Encabezados
+                TableRow(
+                  children: [
+                    const SizedBox(), // Espacio nombre
+                    ...List.generate(widget.partido.detallesSets.length, (index) => Center(child: Text('S${index + 1}', style: const TextStyle(color: Colors.grey, fontSize: 12)))),
+                    const Center(child: Text('Sets', style: TextStyle(fontWeight: FontWeight.bold))),
+                    if (hasDetails) const Center(child: Text('Games', style: TextStyle(fontWeight: FontWeight.bold))),
+                  ],
+                ),
+                const TableRow(children: [SizedBox(height: 8), ...[], SizedBox(), if(false) SizedBox()]), // Spacer
+                
+                // Fila Jugador 1
+                TableRow(
+                  children: [
+                    Text(p1Name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    ...widget.partido.detallesSets.map((set) => Center(child: _buildSetScore(set, true))),
+                    Center(child: Text('$setsP1', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blue))),
+                    if (hasDetails) Center(child: Text('$gamesP1', style: const TextStyle(color: Colors.grey))),
+                  ],
+                ),
+                
+                // Spacer row
+                const TableRow(children: [SizedBox(height: 12), ...[], SizedBox(), if(false) SizedBox()]),
+                
+                // Fila Jugador 2
+                TableRow(
+                  children: [
+                    Text(p2Name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    ...widget.partido.detallesSets.map((set) => Center(child: _buildSetScore(set, false))),
+                    Center(child: Text('$setsP2', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blue))),
+                    if (hasDetails) Center(child: Text('$gamesP2', style: const TextStyle(color: Colors.grey))),
+                  ],
+                ),
+              ],
             ),
+
             const SizedBox(height: 24),
             _buildStatsDropdown(context),
             const SizedBox(height: 16),
@@ -207,6 +294,30 @@ class _PartidoDetalleScreenState extends State<PartidoDetalleScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildSetScore(Map<String, dynamic> set, bool isPlayer1) {
+    if (set['esSuperTieBreak'] == true) {
+      final p1 = set['puntosTieBreak1'] ?? 0;
+      final p2 = set['puntosTieBreak2'] ?? 0;
+      return Text(isPlayer1 ? '$p1' : '$p2', style: const TextStyle(fontStyle: FontStyle.italic));
+    }
+    
+    final g1 = set['jugador1'] ?? 0;
+    final g2 = set['jugador2'] ?? 0;
+    final score = isPlayer1 ? '$g1' : '$g2';
+    
+    if (set['esTieBreak'] == true) {
+      final tb1 = set['puntosTieBreak1'] ?? 0;
+      final tb2 = set['puntosTieBreak2'] ?? 0;
+      // Mostrar puntaje de tiebreak pequeño si es relevante (ej: 7-6(4))
+      if (isPlayer1 && g1 == 6 && g2 == 7) return Row(mainAxisSize: MainAxisSize.min, children: [Text(score), Text('($tb1)', style: const TextStyle(fontSize: 10))]);
+      if (isPlayer1 && g1 == 7 && g2 == 6) return Row(mainAxisSize: MainAxisSize.min, children: [Text(score), Text('($tb2)', style: const TextStyle(fontSize: 10))]);
+      if (!isPlayer1 && g2 == 6 && g1 == 7) return Row(mainAxisSize: MainAxisSize.min, children: [Text(score), Text('($tb2)', style: const TextStyle(fontSize: 10))]);
+      if (!isPlayer1 && g2 == 7 && g1 == 6) return Row(mainAxisSize: MainAxisSize.min, children: [Text(score), Text('($tb1)', style: const TextStyle(fontSize: 10))]);
+    }
+    
+    return Text(score, style: const TextStyle(fontSize: 16));
   }
 
   Widget _buildStatsDropdown(BuildContext context) {

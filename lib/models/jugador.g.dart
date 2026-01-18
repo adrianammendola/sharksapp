@@ -21,9 +21,7 @@ class JugadorAdapter extends TypeAdapter<Jugador> {
       partidosGanados: fields[1] as int,
       partidosPerdidos: fields[2] as int,
       partidos: (fields[3] as List?)?.cast<Partido>(),
-      estadisticas: (fields[4] as List?)
-          ?.map((dynamic e) => (e as Map).cast<String, dynamic>())
-          ?.toList(),
+      estadisticas: (fields[4] as List?)?.cast<dynamic>(),
     );
   }
 

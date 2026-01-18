@@ -26,6 +26,12 @@ class Partido extends HiveObject {
   @HiveField(6) // Owner ID
   final String? ownerId;
 
+  @HiveField(7) // Nombres de estadísticas personalizadas (snapshot)
+  final Map<String, String> customStatNames;
+
+  @HiveField(8) // Detalles de los sets (puntuación game a game)
+  final List<Map<String, dynamic>> detallesSets;
+
   Partido({
     required this.fecha,
     required this.jugadores,
@@ -34,6 +40,8 @@ class Partido extends HiveObject {
     required this.estadisticas,
     this.sharedWith = const [], // Initialize with an empty list
     this.ownerId,
+    this.customStatNames = const {},
+    this.detallesSets = const [],
   });
 
   Map<String, dynamic> toJson() {
@@ -78,6 +86,8 @@ class Partido extends HiveObject {
       ),
       'sharedWith': sharedWith, // Add to toJson
       'ownerId': ownerId, // Add ownerId to JSON
+      'customStatNames': customStatNames, // Guardar nombres de stats
+      'detallesSets': detallesSets, // Guardar detalles de sets
     };
   }
 
@@ -147,6 +157,8 @@ class Partido extends HiveObject {
       estadisticas: estadisticasNuevas,
       sharedWith: List<String>.from(json['sharedWith'] ?? []), // Add to fromJson
       ownerId: json['ownerId'], // Add ownerId from JSON
+      customStatNames: (json['customStatNames'] as Map<String, dynamic>?)?.cast<String, String>() ?? {},
+      detallesSets: (json['detallesSets'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [],
     );
   }
 }
