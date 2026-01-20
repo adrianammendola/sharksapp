@@ -7,6 +7,9 @@ import '../services/data_service.dart';
 import '../services/firebase_service.dart';
 import 'share_match_screen.dart'; // Import the new screen
 import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 class PartidoDetalleScreen extends StatefulWidget {
   final Partido partido;
@@ -78,6 +81,154 @@ class _PartidoDetalleScreenState extends State<PartidoDetalleScreen> {
     }
   }
 
+  Future<void> _exportToPdf() async {
+    final doc = pw.Document();
+
+    // Determinar nombres
+    String p1Name, p2Name;
+    if (widget.partido.esDobles) {
+      p1Name = 'Equipo 1';
+      p2Name = 'Equipo 2';
+    } else {
+      p1Name = widget.partido.jugadores.isNotEmpty ? widget.partido.jugadores[0] : 'Jugador 1';
+      p2Name = widget.partido.jugadores.length > 1 ? widget.partido.jugadores[1] : 'Jugador 2';
+    }
+
+    // Obtener estadísticas totales
+    final stats1 = widget.partido.estadisticas[p1Name]?.estadisticasTotales ?? EstadisticaSet();
+    final stats2 = widget.partido.estadisticas[p2Name]?.estadisticasTotales ?? EstadisticaSet();
+
+    // Totales para porcentajes
+    final totalWinners1 = stats1.winnersDrive + stats1.winnersReves;
+    final totalWinners2 = stats2.winnersDrive + stats2.winnersReves;
+    final totalErrors1 = stats1.erroresNoForzados + stats1.erroresForzados;
+    final totalErrors2 = stats2.erroresNoForzados + stats2.erroresForzados;
+
+    // Helpers para formateo
+    String fmt(int val, int total) => total > 0 ? '$val/$total (${(val/total*100).toStringAsFixed(1)}%)' : '$val';
+    
+    doc.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) {
+          return [
+            pw.Header(
+              level: 0,
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text('Reporte de Partido', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                ],
+              ),
+            ),
+            pw.Text(_formatDate(widget.partido.fecha)),
+            pw.SizedBox(height: 20),
+
+            // Scoreboard
+            pw.Table(
+              border: pw.TableBorder.all(),
+              children: [
+                // Header Sets
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey300),
+                  children: [
+                    pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Text('Jugador', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                    ...List.generate(widget.partido.detallesSets.length, (i) => 
+                      pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Center(child: pw.Text('S${i+1}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))))
+                    ),
+                    pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Center(child: pw.Text('Sets', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)))),
+                  ],
+                ),
+                // P1
+                pw.TableRow(
+                  children: [
+                    pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Text(p1Name)),
+                    ...widget.partido.detallesSets.map((s) {
+                       final val = s['esSuperTieBreak'] == true ? (s['puntosTieBreak1'] ?? 0) : (s['jugador1'] ?? 0);
+                       return pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Center(child: pw.Text('$val')));
+                    }),
+                    pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Center(child: pw.Text('${widget.partido.sets[p1Name] ?? 0}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)))),
+                  ],
+                ),
+                // P2
+                pw.TableRow(
+                  children: [
+                    pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Text(p2Name)),
+                    ...widget.partido.detallesSets.map((s) {
+                       final val = s['esSuperTieBreak'] == true ? (s['puntosTieBreak2'] ?? 0) : (s['jugador2'] ?? 0);
+                       return pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Center(child: pw.Text('$val')));
+                    }),
+                    pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Center(child: pw.Text('${widget.partido.sets[p2Name] ?? 0}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)))),
+                  ],
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 20),
+
+            // Stats Comparison
+            pw.Text('Estadísticas Comparativas', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 10),
+            pw.Table(
+              border: pw.TableBorder.symmetric(inside: const pw.BorderSide(color: PdfColors.grey300)),
+              children: [
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                  children: [
+                    pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Text('Estadística', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                    pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Center(child: pw.Text(p1Name, style: pw.TextStyle(fontWeight: pw.FontWeight.bold)))),
+                    pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Center(child: pw.Text(p2Name, style: pw.TextStyle(fontWeight: pw.FontWeight.bold)))),
+                  ],
+                ),
+                _buildPdfStatRow('1er Servicio', 
+                  fmt(stats1.primerServicio, stats1.primerServicio + stats1.segundoServicio), 
+                  fmt(stats2.primerServicio, stats2.primerServicio + stats2.segundoServicio)),
+                _buildPdfStatRow('2do Servicio', 
+                  fmt(stats1.segundoServicio, stats1.primerServicio + stats1.segundoServicio), 
+                  fmt(stats2.segundoServicio, stats2.primerServicio + stats2.segundoServicio)),
+                _buildPdfStatRow('Aces', '${stats1.aces}', '${stats2.aces}'),
+                _buildPdfStatRow('Dobles Faltas', '${stats1.doblesFaltas}', '${stats2.doblesFaltas}'),
+                _buildPdfStatRow('Winners Drive', fmt(stats1.winnersDrive, totalWinners1), fmt(stats2.winnersDrive, totalWinners2)),
+                _buildPdfStatRow('Winners Revés', fmt(stats1.winnersReves, totalWinners1), fmt(stats2.winnersReves, totalWinners2)),
+                _buildPdfStatRow('Err. No Forzados (Drive)', fmt(stats1.erroresNoForzadosDrive, totalErrors1), fmt(stats2.erroresNoForzadosDrive, totalErrors2)),
+                _buildPdfStatRow('Err. No Forzados (Revés)', fmt(stats1.erroresNoForzadosReves, totalErrors1), fmt(stats2.erroresNoForzadosReves, totalErrors2)),
+                _buildPdfStatRow('Err. Forzados (Drive)', fmt(stats1.erroresForzadosDrive, totalErrors1), fmt(stats2.erroresForzadosDrive, totalErrors2)),
+                _buildPdfStatRow('Err. Forzados (Revés)', fmt(stats1.erroresForzadosReves, totalErrors1), fmt(stats2.erroresForzadosReves, totalErrors2)),
+                
+                // Custom Stats
+                if (_customStatsConfig.isNotEmpty) ...[
+                   pw.TableRow(children: [pw.SizedBox(height: 10), pw.SizedBox(), pw.SizedBox()]),
+                   pw.TableRow(children: [
+                     pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Text('Personalizadas', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.purple))),
+                     pw.SizedBox(), pw.SizedBox()
+                   ]),
+                   ..._customStatsConfig.map((c) {
+                     final w1 = stats1.customStats['${c.id}_won'] ?? 0;
+                     final l1 = stats1.customStats['${c.id}_lost'] ?? 0;
+                     final w2 = stats2.customStats['${c.id}_won'] ?? 0;
+                     final l2 = stats2.customStats['${c.id}_lost'] ?? 0;
+                     return _buildPdfStatRow('${c.name} (Aciertos/Errores)', '$w1 / $l1', '$w2 / $l2');
+                   }),
+                ]
+              ],
+            ),
+          ];
+        },
+      ),
+    );
+
+    await Printing.sharePdf(bytes: await doc.save(), filename: 'partido_${widget.partido.fecha.millisecondsSinceEpoch}.pdf');
+  }
+
+  pw.TableRow _buildPdfStatRow(String label, String v1, String v2) {
+    return pw.TableRow(
+      children: [
+        pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Text(label)),
+        pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Center(child: pw.Text(v1))),
+        pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Center(child: pw.Text(v2))),
+      ],
+    );
+  }
+
   void _addComment() async {
     if (_commentController.text.trim().isEmpty) return;
 
@@ -146,6 +297,11 @@ class _PartidoDetalleScreenState extends State<PartidoDetalleScreen> {
       appBar: AppBar(
         title: const Text('Detalles del Partido'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: 'Exportar PDF',
+            onPressed: _exportToPdf,
+          ),
           // Mostrar botón de compartir solo si es dueño Y es profesor/admin
           Builder(
             builder: (context) {
@@ -211,26 +367,6 @@ class _PartidoDetalleScreenState extends State<PartidoDetalleScreen> {
     final setsP1 = widget.partido.sets[p1Name] ?? widget.partido.sets[widget.partido.jugadores.isNotEmpty ? widget.partido.jugadores[0] : ''] ?? 0;
     final setsP2 = widget.partido.sets[p2Name] ?? widget.partido.sets[widget.partido.jugadores.length > 1 ? widget.partido.jugadores[1] : ''] ?? 0;
 
-    // Calcular games totales si hay detalles
-    int gamesP1 = 0;
-    int gamesP2 = 0;
-    bool hasDetails = widget.partido.detallesSets.isNotEmpty;
-
-    if (hasDetails) {
-      for (var set in widget.partido.detallesSets) {
-        if (set['esSuperTieBreak'] == true) {
-          // En super tie break, sumamos 1 game al ganador para el conteo total
-          int pt1 = set['puntosTieBreak1'] ?? 0;
-          int pt2 = set['puntosTieBreak2'] ?? 0;
-          if (pt1 > pt2) gamesP1++;
-          else if (pt2 > pt1) gamesP2++;
-        } else {
-          gamesP1 += (set['jugador1'] as int? ?? 0);
-          gamesP2 += (set['jugador2'] as int? ?? 0);
-        }
-      }
-    }
-
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -243,47 +379,57 @@ class _PartidoDetalleScreenState extends State<PartidoDetalleScreen> {
             const SizedBox(height: 16),
             
             // Tabla de Puntuación (Scoreboard)
-            Table(
-              columnWidths: const {
-                0: FlexColumnWidth(3), // Nombre
-                // Las columnas de sets se ajustan automáticamente
-              },
-              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-              children: [
-                // Encabezados
-                TableRow(
-                  children: [
-                    const SizedBox(), // Espacio nombre
-                    ...List.generate(widget.partido.detallesSets.length, (index) => Center(child: Text('S${index + 1}', style: const TextStyle(color: Colors.grey, fontSize: 12)))),
-                    const Center(child: Text('Sets', style: TextStyle(fontWeight: FontWeight.bold))),
-                    if (hasDetails) const Center(child: Text('Games', style: TextStyle(fontWeight: FontWeight.bold))),
-                  ],
-                ),
-                const TableRow(children: [SizedBox(height: 8), ...[], SizedBox(), if(false) SizedBox()]), // Spacer
-                
-                // Fila Jugador 1
-                TableRow(
-                  children: [
-                    Text(p1Name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    ...widget.partido.detallesSets.map((set) => Center(child: _buildSetScore(set, true))),
-                    Center(child: Text('$setsP1', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blue))),
-                    if (hasDetails) Center(child: Text('$gamesP1', style: const TextStyle(color: Colors.grey))),
-                  ],
-                ),
-                
-                // Spacer row
-                const TableRow(children: [SizedBox(height: 12), ...[], SizedBox(), if(false) SizedBox()]),
-                
-                // Fila Jugador 2
-                TableRow(
-                  children: [
-                    Text(p2Name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    ...widget.partido.detallesSets.map((set) => Center(child: _buildSetScore(set, false))),
-                    Center(child: Text('$setsP2', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blue))),
-                    if (hasDetails) Center(child: Text('$gamesP2', style: const TextStyle(color: Colors.grey))),
-                  ],
-                ),
-              ],
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Table(
+                columnWidths: {
+                  0: const IntrinsicColumnWidth(), // Nombre ajustado al contenido
+                  for (var i = 0; i < widget.partido.detallesSets.length; i++)
+                    (i + 1): const FixedColumnWidth(45), // Sets compactos
+                  (widget.partido.detallesSets.length + 1): const FixedColumnWidth(50), // Columna Sets
+                },
+                defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                children: [
+                  // Encabezados
+                  TableRow(
+                    decoration: BoxDecoration(
+                      border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
+                    ),
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
+                        child: Text('Jugador', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      ),
+                      ...List.generate(widget.partido.detallesSets.length, (index) => Center(child: Text('S${index + 1}', style: const TextStyle(color: Colors.grey, fontSize: 12)))),
+                      const Center(child: Text('Sets', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                    ],
+                  ),
+                  
+                  // Fila Jugador 1
+                  TableRow(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+                        child: Text(p1Name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      ),
+                      ...widget.partido.detallesSets.map((set) => Center(child: _buildSetScore(set, true))),
+                      Center(child: Text('$setsP1', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blue))),
+                    ],
+                  ),
+                  
+                  // Fila Jugador 2
+                  TableRow(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+                        child: Text(p2Name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      ),
+                      ...widget.partido.detallesSets.map((set) => Center(child: _buildSetScore(set, false))),
+                      Center(child: Text('$setsP2', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blue))),
+                    ],
+                  ),
+                ],
+              ),
             ),
 
             const SizedBox(height: 24),

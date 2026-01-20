@@ -158,7 +158,7 @@ class Partido extends HiveObject {
       sharedWith: List<String>.from(json['sharedWith'] ?? []), // Add to fromJson
       ownerId: json['ownerId'], // Add ownerId from JSON
       customStatNames: (json['customStatNames'] as Map<String, dynamic>?)?.cast<String, String>() ?? {},
-      detallesSets: (json['detallesSets'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [],
+      detallesSets: (json['detallesSets'] as List<dynamic>?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? [],
     );
   }
 }

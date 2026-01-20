@@ -25,13 +25,16 @@ class PartidoAdapter extends TypeAdapter<Partido> {
       sharedWith: (fields[5] as List).cast<String>(),
       ownerId: fields[6] as String?,
       customStatNames: (fields[7] as Map).cast<String, String>(),
+      detallesSets: (fields[8] as List)
+          .map((dynamic e) => (e as Map).cast<String, dynamic>())
+          .toList(),
     );
   }
 
   @override
   void write(BinaryWriter writer, Partido obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.fecha)
       ..writeByte(1)
@@ -47,7 +50,9 @@ class PartidoAdapter extends TypeAdapter<Partido> {
       ..writeByte(6)
       ..write(obj.ownerId)
       ..writeByte(7)
-      ..write(obj.customStatNames);
+      ..write(obj.customStatNames)
+      ..writeByte(8)
+      ..write(obj.detallesSets);
   }
 
   @override
