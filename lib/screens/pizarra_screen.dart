@@ -16,6 +16,13 @@ class _PizarraScreenState extends State<PizarraScreen> {
   void initState() {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    
+    // Forzar orientación horizontal (landscape) para la pizarra
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeRight,
+      DeviceOrientation.landscapeLeft,
+    ]);
+
     // Para la pizarra queremos un fondo totalmente negro, también en las barras del sistema.
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.black,
@@ -28,6 +35,13 @@ class _PizarraScreenState extends State<PizarraScreen> {
   @override
   void dispose() {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    
+    // Restaurar la orientación vertical (portrait) al salir de la pizarra
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+
     // Restaurar un estilo más neutro para el resto de la app
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -66,7 +80,7 @@ class _PizarraScreenState extends State<PizarraScreen> {
             Image.asset(
               'assets/images/pizarra/tennis_court.png',
               // En horizontal llenamos la pantalla; en vertical mantenemos la vista "normal"
-              fit: BoxFit.fill,
+              fit: BoxFit.contain,
             ),
             // Lienzo para dibujar
             Painter(_controller),
